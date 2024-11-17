@@ -105,7 +105,7 @@ public:
             auto* child = new MTree(M);
             
             // Copy values to child
-            for (int j = 0; j < child_size; j++) {
+            for (int j = 0; j < child_size && start_idx < values.size(); j++) {
                 child->values.push_back(values[start_idx + j]);
             }
             
@@ -126,9 +126,7 @@ public:
         if (is_leaf()) return nullptr;
         
         const int pos = binary_search_pos(value);
-        return pos < values.size() && value > values[pos] 
-            ? children[pos + 1] 
-            : children[pos];
+        return children[pos < children.size() ? pos : children.size() - 1];
     }
 
     bool search(const DT& value) const {
@@ -144,15 +142,10 @@ public:
 
     void remove(const DT& value) {
         if (is_leaf()) {
-            bool found = false;
-            for (size_t i = 0; i < values.size(); ++i) {
-                if (values[i] == value) {
-                    values.erase(values.begin() + i);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
+            auto it = find(values.begin(), values.end(), value);
+            if (it != values.end()) {
+                values.erase(it);
+            } else {
                 throw NotFoundException();
             }
         } else {
@@ -170,11 +163,9 @@ public:
         if (is_leaf()) {
             all_values = values;
         } else {
-            for (const auto* child : children) {
-                auto child_values = child->collect_values();
-                all_values.insert(all_values.end(), 
-                                child_values.begin(), 
-                                child_values.end());
+            for (size_t i = 0; i < children.size(); ++i) {
+                auto child_values = children[i]->collect_values();
+                all_values.insert(all_values.end(), child_values.begin(), child_values.end());
             }
         }
         return all_values;
@@ -187,6 +178,10 @@ public:
         }
         children.clear();
         values.clear();
+
+        if (input_values.empty()) {
+            return;
+        }
 
         if (input_values.size() < M) {
             values = input_values;
@@ -224,7 +219,7 @@ int main() {
     char command;
     int value;
     
-    cin >> n;  // First number (500) is ignored
+    cin >> n;  // First number is ignored
     cin >> n;  // Actual size of the array
     
     vector<int> sorted_values(n);
@@ -239,13 +234,20 @@ int main() {
         tree->buildTree(sorted_values);
         
         cin >> num_commands;
+        cin.ignore(); // Clear the newline after num_commands
         
+        string line;
         for (int i = 0; i < num_commands; ++i) {
-            cin >> command;
+            getline(cin, line);
+            if (line.empty()) continue;
+            
+            command = line[0];
+            if (command != 'B') {
+                value = stoi(line.substr(2));
+            }
             
             switch (command) {
                 case 'I': {
-                    cin >> value;
                     try {
                         tree->insert(value);
                     } catch (const DuplicateInsertionException&) {
@@ -254,7 +256,6 @@ int main() {
                     break;
                 }
                 case 'R': {
-                    cin >> value;
                     try {
                         tree->remove(value);
                         cout << "The value = " << value << " has been removed." << endl;
@@ -264,7 +265,6 @@ int main() {
                     break;
                 }
                 case 'F': {
-                    cin >> value;
                     if (tree->search(value)) {
                         cout << "The element with value = " << value << " was found." << endl;
                     } else {
@@ -278,27 +278,25 @@ int main() {
                     cout << "The tree has been rebuilt." << endl;
                     break;
                 }
-                default:
-                    cout << "Invalid command!" << endl;
             }
         }
 
         // Print final list
-        cout << "Final list:";
+        cout << "Final list:" << endl;
         auto final_values = tree->collect_values();
-        int count = 0;
-        for (const auto& val : final_values) {
-            if (count % 10 == 0) cout << endl;
-            cout << val << " ";
-            count++;
+        for (size_t i = 0; i < final_values.size(); ++i) {
+            cout << final_values[i];
+            if ((i + 1) % 10 == 0 || i == final_values.size() - 1) {
+                cout << endl;
+            } else {
+                cout << " ";
+            }
         }
-        cout << endl;
 
         delete tree;
+        return 0;
     } catch (const invalid_argument& e) {
         cerr << "Error: " << e.what() << endl;
         return 1;
     }
-    
-    return 0;
 }
