@@ -17,9 +17,9 @@ class duplicateInsertion : public exception {
 template <typename DT>
 class MTree {
 protected:
-    int M; // Maximum number of children per node (M+1 way split)
-    vector<DT> values; // Values stored in the node (M-1 values)
-    vector<MTree*> children; // Pointers to child MTrees (M+1 children)
+    int M;
+    vector<DT> values;
+    vector<MTree*> children;
 
 public:
     MTree(int m) : M(m) {
@@ -44,8 +44,9 @@ public:
         }
 
         if (is_leaf()) {
-            auto it = lower_bound(values.begin(), values.end(), value);
-            values.insert(it, value);
+            int pos = 0;
+            while (pos < values.size() && values[pos] < value) pos++;
+            values.insert(values.begin() + pos, value);
             
             if (values.size() >= M) {
                 split_node();
@@ -70,17 +71,14 @@ public:
             if (extra_values > 0) --extra_values;
 
             auto* child = new MTree(M);
-            
             for (int j = 0; j < child_size; j++) {
                 child->values.push_back(values[start_idx + j]);
             }
-            
             new_children.push_back(child);
             
             if (i < M - 1 && start_idx + child_size < values.size()) {
                 new_values.push_back(values[start_idx + child_size - 1]);
             }
-            
             start_idx += child_size;
         }
 
@@ -92,20 +90,14 @@ public:
         if (is_leaf()) return nullptr;
         
         for (size_t i = 0; i < values.size(); ++i) {
-            if (value <= values[i]) {
-                return children[i];
-            }
+            if (value <= values[i]) return children[i];
         }
         return children.back();
     }
 
-    bool search(const DT& value) const {
-        return find(value);
-    }
-
     bool find(const DT& value) const {
-        for (const auto& v : values) {
-            if (v == value) return true;
+        for (size_t i = 0; i < values.size(); ++i) {
+            if (values[i] == value) return true;
         }
         
         if (!is_leaf()) {
@@ -118,17 +110,16 @@ public:
 
     void remove(const DT& value) {
         if (is_leaf()) {
-            auto it = std::find(values.begin(), values.end(), value);
-            if (it != values.end()) {
-                values.erase(it);
-            } else {
-                throw NotFoundException();
+            for (size_t i = 0; i < values.size(); ++i) {
+                if (values[i] == value) {
+                    values.erase(values.begin() + i);
+                    return;
+                }
             }
+            throw NotFoundException();
         } else {
             MTree* child = find_child(value);
-            if (!child) {
-                throw NotFoundException();
-            }
+            if (!child) throw NotFoundException();
             child->remove(value);
         }
     }
@@ -139,8 +130,8 @@ public:
         if (is_leaf()) {
             all_values = values;
         } else {
-            for (const auto* child : children) {
-                auto child_values = child->collect_values();
+            for (size_t i = 0; i < children.size(); ++i) {
+                auto child_values = children[i]->collect_values();
                 all_values.insert(all_values.end(), child_values.begin(), child_values.end());
             }
         }
@@ -154,9 +145,7 @@ public:
         children.clear();
         values.clear();
 
-        if (input_values.empty()) {
-            return;
-        }
+        if (input_values.empty()) return;
 
         if (input_values.size() < M) {
             values = input_values;
@@ -183,7 +172,6 @@ public:
             if (i < M - 1 && start_idx + child_size < input_values.size()) {
                 values.push_back(input_values[start_idx + child_size - 1]);
             }
-            
             start_idx += child_size;
         }
     }
@@ -191,8 +179,8 @@ public:
 
 int main() {
     int n;
-    cin >> n; // First number is ignored
-    cin >> n; // Actual size of array
+    cin >> n;
+    cin >> n;
     
     vector<int> mySortedValues(n);
     for (int i = 0; i < n; ++i) {
@@ -210,27 +198,31 @@ int main() {
         cin >> numCommands;
         cin.ignore();
         
-        string line;
         for (int i = 0; i < numCommands; ++i) {
+            string line;
             getline(cin, line);
             if (line.empty()) continue;
             
             char command = line[0];
             int value = 0;
-            if (command != 'B') {
-                value = stoi(line.substr(2));
+            
+            if (command != 'B' && line.length() > 2) {
+                for (size_t j = 2; j < line.length(); ++j) {
+                    if (line[j] >= '0' && line[j] <= '9') {
+                        value = value * 10 + (line[j] - '0');
+                    }
+                }
             }
             
             switch (command) {
-                case 'I': {
+                case 'I':
                     try {
                         myTree->insert(value);
                     } catch (const duplicateInsertion&) {
                         cout << "The value = " << value << " already in the tree." << endl;
                     }
                     break;
-                }
-                case 'R': {
+                case 'R':
                     try {
                         myTree->remove(value);
                         cout << "The value = " << value << " has been removed." << endl;
@@ -238,15 +230,13 @@ int main() {
                         cout << "The value = " << value << " not found." << endl;
                     }
                     break;
-                }
-                case 'F': {
+                case 'F':
                     if (myTree->find(value)) {
                         cout << "The element with value = " << value << " was found." << endl;
                     } else {
                         cout << "The element with value = " << value << " not found." << endl;
                     }
                     break;
-                }
                 case 'B': {
                     auto values = myTree->collect_values();
                     myTree->buildTree(values);
@@ -258,7 +248,6 @@ int main() {
             }
         }
 
-        // Print final list
         cout << "Final list:" << endl;
         auto final_values = myTree->collect_values();
         for (size_t i = 0; i < final_values.size(); ++i) {
