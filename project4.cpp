@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <string>
 using namespace std;
 
 class NotFoundException : public exception {
@@ -96,8 +97,8 @@ public:
     }
 
     bool find(const DT& value) const {
-        for (size_t i = 0; i < values.size(); ++i) {
-            if (values[i] == value) return true;
+        for (const DT& v : values) {
+            if (v == value) return true;
         }
         
         if (!is_leaf()) {
@@ -109,14 +110,16 @@ public:
     }
 
     void remove(const DT& value) {
+        bool found = false;
         if (is_leaf()) {
             for (size_t i = 0; i < values.size(); ++i) {
                 if (values[i] == value) {
                     values.erase(values.begin() + i);
-                    return;
+                    found = true;
+                    break;
                 }
             }
-            throw NotFoundException();
+            if (!found) throw NotFoundException();
         } else {
             MTree* child = find_child(value);
             if (!child) throw NotFoundException();
@@ -126,12 +129,11 @@ public:
 
     vector<DT> collect_values() const {
         vector<DT> all_values;
-        
         if (is_leaf()) {
             all_values = values;
         } else {
-            for (size_t i = 0; i < children.size(); ++i) {
-                auto child_values = children[i]->collect_values();
+            for (auto* child : children) {
+                auto child_values = child->collect_values();
                 all_values.insert(all_values.end(), child_values.begin(), child_values.end());
             }
         }
@@ -139,6 +141,7 @@ public:
     }
 
     void buildTree(vector<DT>& input_values) {
+        // Clear current tree
         for (auto* child : children) {
             delete child;
         }
@@ -147,40 +150,43 @@ public:
 
         if (input_values.empty()) return;
 
+        // If we have fewer values than M, just store them in this node
         if (input_values.size() < M) {
             values = input_values;
             return;
         }
 
+        // Split values among M children
         int values_per_child = input_values.size() / M;
         int extra_values = input_values.size() % M;
         int start_idx = 0;
 
+        // Create M children and distribute values
         for (int i = 0; i < M; ++i) {
             int child_size = values_per_child + (extra_values > 0 ? 1 : 0);
             if (extra_values > 0) --extra_values;
 
             vector<DT> child_values;
             for (int j = 0; j < child_size && start_idx < input_values.size(); ++j) {
-                child_values.push_back(input_values[start_idx + j]);
+                child_values.push_back(input_values[start_idx++]);
             }
             
             auto* child = new MTree(M);
             child->buildTree(child_values);
             children.push_back(child);
 
-            if (i < M - 1 && start_idx + child_size < input_values.size()) {
-                values.push_back(input_values[start_idx + child_size - 1]);
+            // Add separator value for internal node
+            if (i < M - 1 && start_idx < input_values.size()) {
+                values.push_back(input_values[start_idx - 1]);
             }
-            start_idx += child_size;
         }
     }
 };
 
 int main() {
     int n;
-    cin >> n;
-    cin >> n;
+    cin >> n;  // First number is ignored
+    cin >> n;  // Actual size of the array
     
     vector<int> mySortedValues(n);
     for (int i = 0; i < n; ++i) {
@@ -201,6 +207,7 @@ int main() {
         for (int i = 0; i < numCommands; ++i) {
             string line;
             getline(cin, line);
+            
             if (line.empty()) continue;
             
             char command = line[0];
@@ -215,14 +222,15 @@ int main() {
             }
             
             switch (command) {
-                case 'I':
+                case 'I': {
                     try {
                         myTree->insert(value);
                     } catch (const duplicateInsertion&) {
                         cout << "The value = " << value << " already in the tree." << endl;
                     }
                     break;
-                case 'R':
+                }
+                case 'R': {
                     try {
                         myTree->remove(value);
                         cout << "The value = " << value << " has been removed." << endl;
@@ -230,21 +238,21 @@ int main() {
                         cout << "The value = " << value << " not found." << endl;
                     }
                     break;
-                case 'F':
+                }
+                case 'F': {
                     if (myTree->find(value)) {
                         cout << "The element with value = " << value << " was found." << endl;
                     } else {
                         cout << "The element with value = " << value << " not found." << endl;
                     }
                     break;
+                }
                 case 'B': {
                     auto values = myTree->collect_values();
                     myTree->buildTree(values);
                     cout << "The tree has been rebuilt." << endl;
                     break;
                 }
-                default:
-                    cout << "Invalid command!" << endl;
             }
         }
 
