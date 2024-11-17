@@ -22,7 +22,7 @@ protected:
     vector<MTree*> children;
 
 public:
-    MTree(int m) : M(m) {
+    explicit MTree(int m) : M(m) {
         if (m < 2) {
             throw invalid_argument("M must be at least 2");
         }
@@ -36,6 +36,65 @@ public:
 
     bool is_leaf() const {
         return children.empty();
+    }
+
+    MTree* find_child(const DT& value) const {
+        for (size_t i = 0; i < values.size(); ++i) {
+            if (value <= values[i]) {
+                return children[i];
+            }
+        }
+        return children.back();
+    }
+
+    bool find(const DT& value) const {
+        for (size_t i = 0; i < values.size(); ++i) {
+            if (values[i] == value) {
+                return true;
+            }
+        }
+        
+        if (!is_leaf()) {
+            MTree* next = nullptr;
+            for (size_t i = 0; i < values.size(); ++i) {
+                if (value <= values[i]) {
+                    next = children[i];
+                    break;
+                }
+            }
+            if (!next) next = children.back();
+            return next->find(value);
+        }
+        
+        return false;
+    }
+
+    void split_node() {
+        if (!is_leaf()) return;
+
+        vector<MTree*> new_children;
+        vector<DT> new_values;
+        
+        int values_per_child = (values.size() + M - 1) / M;
+        int start_idx = 0;
+
+        for (int i = 0; i < M && start_idx < values.size(); ++i) {
+            auto* child = new MTree(M);
+            int child_size = min(values_per_child, (int)(values.size() - start_idx));
+            
+            for (int j = 0; j < child_size; ++j) {
+                child->values.push_back(values[start_idx + j]);
+            }
+            new_children.push_back(child);
+            
+            if (i < M - 1 && start_idx + child_size < values.size()) {
+                new_values.push_back(values[start_idx + child_size - 1]);
+            }
+            start_idx += child_size;
+        }
+
+        values = new_values;
+        children = new_children;
     }
 
     void insert(const DT& value) {
@@ -54,80 +113,47 @@ public:
                 split_node();
             }
         } else {
-            find_child(value)->insert(value);
-        }
-
-        cout << "The value = " << value << " has been inserted." << endl;
-    }
-
-    void split_node() {
-        if (!is_leaf()) return;
-
-        vector<MTree*> new_children;
-        vector<DT> new_values;
-        
-        int values_per_child = values.size() / M;
-        int extra_values = values.size() % M;
-        int start_idx = 0;
-
-        for (int i = 0; i < M; ++i) {
-            int child_size = values_per_child + (extra_values > 0 ? 1 : 0);
-            if (extra_values > 0) --extra_values;
-
-            auto* child = new MTree(M);
-            for (int j = 0; j < child_size && start_idx < values.size(); ++j) {
-                child->values.push_back(values[start_idx++]);
+            MTree* next = nullptr;
+            for (size_t i = 0; i < values.size(); ++i) {
+                if (value <= values[i]) {
+                    next = children[i];
+                    break;
+                }
             }
-            new_children.push_back(child);
-            
-            if (i < M - 1 && start_idx < values.size()) {
-                new_values.push_back(values[start_idx - 1]);
-            }
+            if (!next) next = children.back();
+            next->insert(value);
         }
-
-        values = new_values;
-        children = new_children;
-    }
-
-    MTree* find_child(const DT& value) const {
-        for (size_t i = 0; i < values.size(); ++i) {
-            if (value <= values[i]) {
-                return children[i];
-            }
-        }
-        return children.back();
-    }
-
-    bool find(const DT& value) const {
-        for (const auto& v : values) {
-            if (v == value) return true;
-        }
-        
-        if (!is_leaf()) {
-            MTree* child = find_child(value);
-            if (child) return child->find(value);
-        }
-        
-        return false;
     }
 
     void remove(const DT& value) {
-        if (!find(value)) {
-            throw NotFoundException();
-        }
+        bool found = false;
         
         if (is_leaf()) {
             for (size_t i = 0; i < values.size(); ++i) {
                 if (values[i] == value) {
                     values.erase(values.begin() + i);
+                    found = true;
                     break;
                 }
             }
         } else {
-            MTree* child = find_child(value);
-            if (child) {
-                child->remove(value);
+            MTree* next = nullptr;
+            for (size_t i = 0; i < values.size(); ++i) {
+                if (value <= values[i]) {
+                    next = children[i];
+                    break;
+                }
             }
+            if (!next) next = children.back();
+            
+            if (next) {
+                next->remove(value);
+                found = true;
+            }
+        }
+        
+        if (!found) {
+            throw NotFoundException();
         }
     }
 
@@ -135,12 +161,12 @@ public:
         vector<DT> result;
         
         if (is_leaf()) {
-            result = values;
-        } else {
-            for (auto* child : children) {
-                auto child_values = child->collect_values();
-                result.insert(result.end(), child_values.begin(), child_values.end());
-            }
+            return values;
+        }
+        
+        for (size_t i = 0; i < children.size(); ++i) {
+            const auto& child_values = children[i]->collect_values();
+            result.insert(result.end(), child_values.begin(), child_values.end());
         }
         
         return result;
@@ -165,7 +191,7 @@ public:
 
         for (int i = 0; i < M && start_idx < input_values.size(); ++i) {
             vector<DT> child_values;
-            int child_size = min(values_per_child, (int)input_values.size() - start_idx);
+            int child_size = min(values_per_child, (int)(input_values.size() - start_idx));
             
             for (int j = 0; j < child_size; ++j) {
                 child_values.push_back(input_values[start_idx + j]);
@@ -187,7 +213,7 @@ public:
 int main() {
     int n;
     cin >> n;  // Ignore first number
-    cin >> n;  // Read actual array size
+    cin >> n;  // Actual size
     
     vector<int> initial_values(n);
     for (int i = 0; i < n; ++i) {
@@ -214,11 +240,14 @@ int main() {
             int value = 0;
             
             if (command != 'B' && line.length() > 2) {
-                for (size_t j = 2; j < line.length(); ++j) {
+                bool neg = line[2] == '-';
+                size_t start = neg ? 3 : 2;
+                for (size_t j = start; j < line.length(); ++j) {
                     if (isdigit(line[j])) {
                         value = value * 10 + (line[j] - '0');
                     }
                 }
+                if (neg) value = -value;
             }
 
             switch (command) {
@@ -247,13 +276,12 @@ int main() {
                     }
                     break;
                     
-                case 'B':
-                    {
-                        auto values = tree->collect_values();
-                        tree->buildTree(values);
-                        cout << "The tree has been rebuilt." << endl;
-                    }
+                case 'B': {
+                    auto values = tree->collect_values();
+                    tree->buildTree(values);
+                    cout << "The tree has been rebuilt." << endl;
                     break;
+                }
             }
         }
 
