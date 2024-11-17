@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <sstream>
 using namespace std;
 
 class NotFoundException : public exception {
@@ -198,8 +199,6 @@ public:
 
 int main() {
     int n, M, num_commands;
-    char command;
-    int value;
     
     cin >> n;
     cin >> n;
@@ -217,14 +216,15 @@ int main() {
         MTree<int>* tree = new MTree<int>(M);
         tree->buildTree(sorted_values);
         
-        for (int i = 0; i < num_commands; ++i) {
-            string line;
-            getline(cin, line);
-            if (line.empty()) continue;
+        string line;
+        while (num_commands-- > 0 && getline(cin, line)) {
+            istringstream iss(line);
+            char command;
+            int value;
             
-            command = line[0];
+            iss >> command;
             if (command != 'B') {
-                value = stoi(line.substr(2));
+                if (!(iss >> value)) continue;
             }
             
             switch (command) {
@@ -250,11 +250,12 @@ int main() {
                         cout << "The element with value = " << value << " not found." << endl;
                     }
                     break;
-                case 'B':
+                case 'B': {
                     auto values = tree->collect_values();
                     tree->buildTree(values);
                     cout << "The tree has been rebuilt." << endl;
                     break;
+                }
             }
         }
 
