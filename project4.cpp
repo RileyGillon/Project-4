@@ -307,7 +307,7 @@ int main() {
                         tree.insert(value);
                         cout << value << " has been added to the tree." << endl;
                     } catch (const duplicateInsertion&) {
-                        cout << "The value = " << value << " is already in the tree." << endl;
+                        cout << "The value = " << value << " already in the tree." << endl;
                     }
                     break;
                 case 'R':
