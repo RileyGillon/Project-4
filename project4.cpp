@@ -275,7 +275,6 @@ int main() {
         cin >> n;
 
         vector<int> input_values(n);
-        cout << "Enter " << n << " integers:" << endl;
         for (int i = 0; i < n; ++i) {
             cin >> input_values[i];
         }
