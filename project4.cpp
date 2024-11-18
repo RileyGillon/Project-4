@@ -199,9 +199,10 @@ int main() {
                break;
                case 'B':
                    tree.collect_values();
+                   cout << "The tree has been rebuilt." << endl;
                break;
                default:
-                   cout << "Unknown Command" << endl;
+                   cout << "Invalid command" << endl;
            }
         }
         auto values = tree.collect_values();
