@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+#include <algorithm> // for find
+
 using namespace std;
 
 template <typename DT>
@@ -10,57 +12,32 @@ public:
     }
 };
 
-// Custom find function to replace std::find
-template<typename Container, typename T>
-typename Container::iterator custom_find(Container& c, const T& value) {
-    auto it = c.begin();
-    while (it != c.end()) {
-        if (*it == value) return it;
-        ++it;
-    }
-    return c.end();
-}
-
-// Custom sort function
-template<typename Container>
-void custom_sort(Container& c) {
-    for (size_t i = 0; i < c.size(); i++) {
-        for (size_t j = i + 1; j < c.size(); j++) {
-            if (c[j] < c[i]) {
-                auto temp = c[i];
-                c[i] = c[j];
-                c[j] = temp;
-            }
-        }
-    }
-}
-
 template <typename DT>
 class MTree {
 protected:
-    int M;
-    vector<DT> values;
-    vector<MTree*> children;
+    int M; // Maximum number of children per node (M+1 way split)
+    vector<DT> values; // Values stored in the node (M-1 values)
+    vector<MTree*> children; // Pointers to child MTrees (M+1 children)
     
 public:
     MTree(int M);
     ~MTree();
-    bool is_leaf() const;
-    void insert(const DT& value);
-    void split_node();
-    MTree* find_child(const DT& value);
-    bool search(const DT& value);
-    void remove(const DT& value);
-    void buildTree(vector<DT>& input_values);
-    vector<DT>& collect_values();
+    bool is_leaf() const; // Check if the current node is a leaf
+    void insert(const DT& value); // Insert a value into the MTree
+    void split_node(); // Split the node if it exceeds capacity (i.e >=M)
+    MTree* find_child(const DT& value); // Find the correct child to follow
+    bool search(const DT& value); // Search for a value in the MTree
+    void remove(const DT& value); // Delete a value from the MTree
+    void buildTree(vector<DT>& input_values); // Build the tree
+    vector<DT>& collect_values(); // Collect values from all leaf nodes
     bool find(const DT& value);
 };
 
 template <typename DT>
 MTree<DT>::MTree(int M) : M(M) {
-    if (M < 2) {
-        throw invalid_argument("M must be at least 2");
-    }
+  if (M < 2) {
+     throw invalid_argument("M must be at least 2");
+  }
 }
 
 template <typename DT>
@@ -77,8 +54,9 @@ bool MTree<DT>::is_leaf() const {
 
 template <typename DT>
 void MTree<DT>::insert(const DT& value) {
+    // Placeholder: Simplified insertion logic, expand as needed
     values.push_back(value);
-    custom_sort(values);
+    sort(values.begin(), values.end());
     
     if (values.size() >= M) {
         split_node();
@@ -87,11 +65,15 @@ void MTree<DT>::insert(const DT& value) {
 
 template <typename DT>
 void MTree<DT>::split_node() {
+    // Placeholder: Simplified split logic
     if (values.size() < M) return;
+    
+    // Split the node here...
 }
 
 template <typename DT>
 MTree<DT>* MTree<DT>::find_child(const DT& value) {
+    // Placeholder: Simplistic child finding, should be refined
     for (size_t i = 0; i < values.size(); ++i) {
         if (value < values[i]) {
             return children.empty() ? nullptr : children[i];
@@ -112,12 +94,13 @@ bool MTree<DT>::search(const DT& value) {
             return child->search(value);
         }
     }
+
     return false;
 }
 
 template <typename DT>
 void MTree<DT>::remove(const DT& value) {
-    auto it = custom_find(values, value);
+    auto it = std::find(values.begin(), values.end(), value);
     if (it != values.end()) {
         values.erase(it);
     } else {
@@ -142,7 +125,7 @@ vector<DT>& MTree<DT>::collect_values() {
 
 template <typename DT>
 bool MTree<DT>::find(const DT& value) {
-    return custom_find(values, value) != values.end();
+    return std::find(values.begin(), values.end(), value) != values.end();
 }
 
 class duplicateInsertion : public exception {
@@ -160,10 +143,10 @@ class NotFoundException : public exception {
 int main() {
     try {
         int n;
-        cin >> n;
+        cin >> n ;
 
         vector<int> input_values(n);
-//        cout << "Enter " << n << " integers:" << endl;
+        cout << "Enter " << n << " integers:" << endl;
 
         for (int i = 0; i < n; ++i) {
             cin >> input_values[i];
@@ -171,7 +154,7 @@ int main() {
 
         int M;
         cin >> M;
-        MTree<int> tree(M);
+        MTree<int> tree(M); // Create an M-tree with M
         tree.buildTree(input_values);
 
         int numCommands;
