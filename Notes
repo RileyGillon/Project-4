@@ -1,0 +1,54 @@
+The following prompts were used for AI help (these prompts were copied directly from my AI chat window, and I added the additional rational)
+
+* "Multiway tree Construction Algorithm Explalotion" - I used this prompt because, I needed additional help understanding what my code was doing.
+On paper I can see how the tree should be constructed and how each node should conned to each other, but implementing in the code I got lost.
+
+* "Understanding is_leaf() Function in MTree" - My implementation for is _leaf seemed to not be correctly identifying the tree leaves.
+I hoped this prompt would help explain where my code was going wrong.
+
+* "Understanding C+ binary search algorithm" - I used this prompt to help me with sorting the input array of values
+
+* "Potential Problems in MTree Search Function" - I used this prompt because I was still stuck.
+I got the easy stuff, like getting my array and sorting the values,
+but then when
+I tried to find elements or remove elements but every time I would not correctly traverse the leaves.
+
+*"Code Improvement Discussion" - My IDE had some red squiggles so I asked for suggestions on improvement
+
+* "Explaining C++ MTree Remove Function" - Still having issues with remove and insert
+
+*"Understanding C++ Template Declarations" - Some of the improvements that were added I asked for clarification about
+
+*"Handling C++ Command Switch and Exceptions" - I did a quick syntax search for the switch statement that is being used.
+
+*"Code Structure and Error Handling Validation" - I got confused on some of the error handling,
+so I asked for a review
+
+* "Code Refactoring Suggestions" - I didn't like how I was handling getting the
+input parameters from the command line, so I asked for suggestions.
+
+* ”After everything is printed, I want it to print out the final list of integers.” - I wanted to quikly create a way to print out the list of integers
+
+
+Some of the problem that I am facing is 
+Getting the ‘I’ command to not insert when there is already an int in there
+Getting the ‘F’ command to find them
+I used these programs to fix the froblem
+template <typename DT>
+class duplicateInsertion : public exception {
+    const char* what() const throw() override {
+        return "Value already exists in tree";
+    }
+};
+
+
+template <typename DT>
+class NotFoundException : public exception {
+     const char* what() const throw() override {
+         return "Value not found in tree";
+     }
+};
+
+I also used ai to create my costume sort
+
+
