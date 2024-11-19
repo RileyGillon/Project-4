@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <algorithm> // for find
 
 using namespace std;
 
@@ -13,31 +12,77 @@ public:
 };
 
 template <typename DT>
+class duplicateInsertion : public exception {
+    const char* what() const throw() override {
+        return "Value already exists in tree";
+    }
+};
+
+template <typename DT>
+class NotFoundException : public exception {
+     const char* what() const throw() override {
+         return "Value not found in tree";
+     }
+};
+
+template <typename DT>
 class MTree {
 protected:
     int M; // Maximum number of children per node (M+1 way split)
     vector<DT> values; // Values stored in the node (M-1 values)
     vector<MTree*> children; // Pointers to child MTrees (M+1 children)
     
+    // Custom find implementation
+    typename vector<DT>::iterator custom_find(typename vector<DT>::iterator first, 
+                                            typename vector<DT>::iterator last, 
+                                            const DT& value) {
+        for (auto it = first; it != last; ++it) {
+            if (*it == value) return it;
+        }
+        return last;
+    }
+    
+    // Custom sort implementation (bubble sort)
+    void custom_sort(vector<DT>& arr) {
+        int n = arr.size();
+        for (int i = 0; i < n-1; i++) {
+            for (int j = 0; j < n-i-1; j++) {
+                if (arr[j] > arr[j+1]) {
+                    DT temp = arr[j];
+                    arr[j] = arr[j+1];
+                    arr[j+1] = temp;
+                }
+            }
+        }
+    }
+    
 public:
     MTree(int M);
     ~MTree();
-    bool is_leaf() const; // Check if the current node is a leaf
-    void insert(const DT& value); // Insert a value into the MTree
-    void split_node(); // Split the node if it exceeds capacity (i.e >=M)
-    MTree* find_child(const DT& value); // Find the correct child to follow
-    bool search(const DT& value); // Search for a value in the MTree
-    void remove(const DT& value); // Delete a value from the MTree
-    void buildTree(vector<DT>& input_values); // Build the tree
-    vector<DT>& collect_values(); // Collect values from all leaf nodes
+    bool is_leaf() const;
+    void insert(const DT& value);
+    void split_node();
+    MTree* find_child(const DT& value);
+    bool search(const DT& value);
+    void remove(const DT& value);
+    void buildTree(vector<DT>& input_values);
+    vector<DT>& collect_values();
     bool find(const DT& value);
+
+    void getFinalValues() const {
+        cout << "Final list: ";
+        for (const DT& val : values) {
+            cout << val << " ";
+        }
+        cout << endl;
+    }
 };
 
 template <typename DT>
 MTree<DT>::MTree(int M) : M(M) {
-  if (M < 2) {
-     throw invalid_argument("M must be at least 2");
-  }
+    if (M < 2) {
+        throw invalid_argument("M must be at least 2");
+    }
 }
 
 template <typename DT>
@@ -54,26 +99,26 @@ bool MTree<DT>::is_leaf() const {
 
 template <typename DT>
 void MTree<DT>::insert(const DT& value) {
-    // Placeholder: Simplified insertion logic, expand as needed
-    values.push_back(value);
-    sort(values.begin(), values.end());
-    
-    if (values.size() >= M) {
-        split_node();
+    if (!find(value)) {
+        values.push_back(value);
+        custom_sort(values);
+
+        if (values.size() >= M) {
+            split_node();
+        }
+    } else {
+        throw duplicateInsertion<DT>();
     }
 }
 
+
 template <typename DT>
 void MTree<DT>::split_node() {
-    // Placeholder: Simplified split logic
     if (values.size() < M) return;
-    
-    // Split the node here...
 }
 
 template <typename DT>
 MTree<DT>* MTree<DT>::find_child(const DT& value) {
-    // Placeholder: Simplistic child finding, should be refined
     for (size_t i = 0; i < values.size(); ++i) {
         if (value < values[i]) {
             return children.empty() ? nullptr : children[i];
@@ -100,11 +145,11 @@ bool MTree<DT>::search(const DT& value) {
 
 template <typename DT>
 void MTree<DT>::remove(const DT& value) {
-    auto it = std::find(values.begin(), values.end(), value);
+    auto it = custom_find(values.begin(), values.end(), value);
     if (it != values.end()) {
         values.erase(it);
     } else {
-        throw TreeException<DT>();
+        throw NotFoundException<DT>();
     }
 }
 
@@ -117,33 +162,22 @@ void MTree<DT>::buildTree(vector<DT>& input_values) {
 
 template <typename DT>
 vector<DT>& MTree<DT>::collect_values() {
-    for (int val : values) {
-//        cout << val << " ";
+    for (const DT& val : values) {
+        cout << val << " ";
     }
     return values;
 }
 
 template <typename DT>
 bool MTree<DT>::find(const DT& value) {
-    return std::find(values.begin(), values.end(), value) != values.end();
+    return custom_find(values.begin(), values.end(), value) != values.end();
 }
 
-class duplicateInsertion : public exception {
-    const char* what() const throw() override {
-        return "Value already exists in tree";
-    }
-};
-
-class NotFoundException : public exception {
-     const char* what() const throw() override {
-         return "Value not found in tree";
-     }
-};
 
 int main() {
     try {
         int n;
-        cin >> n ;
+        cin >> n;
 
         vector<int> input_values(n);
 
@@ -153,7 +187,7 @@ int main() {
 
         int M;
         cin >> M;
-        MTree<int> tree(M); // Create an M-tree with M
+        MTree<int> tree(M);
         tree.buildTree(input_values);
 
         int numCommands;
@@ -178,40 +212,41 @@ int main() {
                    try {
                        tree.insert(value);
                        cout << value << " has been added to the tree." << endl;
-                   } catch (const duplicateInsertion&) {
+                   } catch (const duplicateInsertion<int>& ex) {
                        cout << "The value = " << value << " already in the tree." << endl;
                    }
-               break;
+                   break;
                case 'R':
                    try {
                        tree.remove(value);
                        cout << "The value = " << value << " has been removed." << endl;
-                   } catch (const NotFoundException&) {
+                   } catch (const NotFoundException<int>& ex) {
                        cout << "The value = " << value << " not found." << endl;
                    }
-               break;
+                   break;
                case 'F':
                    if (tree.search(value)) {
                        cout << "The element with value = " << value << " was found." << endl;
                    } else {
                        cout << "The element with value = " << value << " not found." << endl;
                    }
-               break;
+                   break;
                case 'B':
-                   tree.collect_values();
+//                   tree.collect_values();
                    cout << "The tree has been rebuilt." << endl;
-               break;
+                   break;
                default:
                    cout << "Invalid command" << endl;
            }
         }
-        auto values = tree.collect_values();
-
+        
+        tree.getFinalValues();
+        
     } catch (const TreeException<int>& ex) {
         cerr << "Caught TreeException: " << ex.what() << endl;
     } catch (const exception& ex) {
         cerr << "Caught exception: " << ex.what() << endl;
     }
-    
+
     return 0;
 }
